@@ -13,6 +13,7 @@ import { DEFAULT_HEADERS } from "./constants"
 import { BaseProvider } from "./base-provider"
 import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "../index"
 import { handleOpenAIError } from "./utils/openai-error-handler"
+import { getTlsOptions } from "./utils/tls"
 
 const XAI_DEFAULT_TEMPERATURE = 0
 
@@ -27,10 +28,14 @@ export class XAIHandler extends BaseProvider implements SingleCompletionHandler 
 
 		const apiKey = this.options.xaiApiKey ?? "not-provided"
 
+		const tls = getTlsOptions(this.options.skipTlsVerification)
+
 		this.client = new OpenAI({
 			baseURL: "https://api.x.ai/v1",
 			apiKey: apiKey,
 			defaultHeaders: DEFAULT_HEADERS,
+			...(tls.httpAgent ? { httpAgent: tls.httpAgent } : {}),
+			...(tls.fetch ? { fetch: tls.fetch } : {}),
 		})
 	}
 

@@ -18,6 +18,7 @@ import { BaseProvider } from "./base-provider"
 import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "../index"
 import { toRequestyServiceUrl } from "../../shared/utils/requesty"
 import { handleOpenAIError } from "./utils/openai-error-handler"
+import { getTlsOptions } from "./utils/tls"
 
 // Requesty usage includes an extra field for Anthropic use cases.
 // Safely cast the prompt token details section to the appropriate structure.
@@ -64,10 +65,14 @@ export class RequestyHandler extends BaseProvider implements SingleCompletionHan
 
 		const apiKey = this.options.requestyApiKey ?? "not-provided"
 
+		const tls = getTlsOptions(this.options.skipTlsVerification)
+
 		this.client = new OpenAI({
 			baseURL: this.baseURL,
 			apiKey: apiKey,
 			defaultHeaders: DEFAULT_HEADERS,
+			...(tls.httpAgent ? { httpAgent: tls.httpAgent } : {}),
+			...(tls.fetch ? { fetch: tls.fetch } : {}),
 		})
 	}
 

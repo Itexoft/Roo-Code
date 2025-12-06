@@ -47,6 +47,7 @@ export const providerProfilesSchema = z.object({
 			openAiHeadersMigrated: z.boolean().optional(),
 			consecutiveMistakeLimitMigrated: z.boolean().optional(),
 			todoListEnabledMigrated: z.boolean().optional(),
+			skipTlsVerificationMigrated: z.boolean().optional(),
 		})
 		.optional(),
 })
@@ -65,13 +66,14 @@ export class ProviderSettingsManager {
 		currentApiConfigName: "default",
 		apiConfigs: { default: { id: this.defaultConfigId } },
 		modeApiConfigs: this.defaultModeApiConfigs,
-		migrations: {
-			rateLimitSecondsMigrated: true, // Mark as migrated on fresh installs
-			diffSettingsMigrated: true, // Mark as migrated on fresh installs
-			openAiHeadersMigrated: true, // Mark as migrated on fresh installs
-			consecutiveMistakeLimitMigrated: true, // Mark as migrated on fresh installs
-			todoListEnabledMigrated: true, // Mark as migrated on fresh installs
-		},
+			migrations: {
+				rateLimitSecondsMigrated: true, // Mark as migrated on fresh installs
+				diffSettingsMigrated: true, // Mark as migrated on fresh installs
+				openAiHeadersMigrated: true, // Mark as migrated on fresh installs
+				consecutiveMistakeLimitMigrated: true, // Mark as migrated on fresh installs
+				todoListEnabledMigrated: true, // Mark as migrated on fresh installs
+				skipTlsVerificationMigrated: true, // Mark as migrated on fresh installs
+			},
 	}
 
 	private readonly context: ExtensionContext
@@ -143,6 +145,7 @@ export class ProviderSettingsManager {
 						openAiHeadersMigrated: false,
 						consecutiveMistakeLimitMigrated: false,
 						todoListEnabledMigrated: false,
+						skipTlsVerificationMigrated: false,
 					} // Initialize with default values
 					isDirty = true
 				}
@@ -174,6 +177,12 @@ export class ProviderSettingsManager {
 				if (!providerProfiles.migrations.todoListEnabledMigrated) {
 					await this.migrateTodoListEnabled(providerProfiles)
 					providerProfiles.migrations.todoListEnabledMigrated = true
+					isDirty = true
+				}
+
+				if (!providerProfiles.migrations.skipTlsVerificationMigrated) {
+					await this.migrateSkipTlsVerification(providerProfiles)
+					providerProfiles.migrations.skipTlsVerificationMigrated = true
 					isDirty = true
 				}
 
@@ -291,6 +300,18 @@ export class ProviderSettingsManager {
 			}
 		} catch (error) {
 			console.error(`[MigrateTodoListEnabled] Failed to migrate todo list enabled setting:`, error)
+		}
+	}
+
+	private async migrateSkipTlsVerification(providerProfiles: ProviderProfiles) {
+		try {
+			for (const [_name, apiConfig] of Object.entries(providerProfiles.apiConfigs)) {
+				if (apiConfig.skipTlsVerification === undefined) {
+					apiConfig.skipTlsVerification = false
+				}
+			}
+		} catch (error) {
+			console.error(`[MigrateSkipTlsVerification] Failed to migrate TLS verification setting:`, error)
 		}
 	}
 

@@ -8,6 +8,7 @@ import { BaseProvider } from "./base-provider"
 import { getModels } from "./fetchers/modelCache"
 
 import { DEFAULT_HEADERS } from "./constants"
+import { getTlsOptions } from "./utils/tls"
 
 type RouterProviderOptions = {
 	name: RouterName
@@ -45,6 +46,8 @@ export abstract class RouterProvider extends BaseProvider {
 		this.defaultModelId = defaultModelId
 		this.defaultModelInfo = defaultModelInfo
 
+		const tls = getTlsOptions(this.options.skipTlsVerification)
+
 		this.client = new OpenAI({
 			baseURL,
 			apiKey,
@@ -52,6 +55,8 @@ export abstract class RouterProvider extends BaseProvider {
 				...DEFAULT_HEADERS,
 				...(options.openAiHeaders || {}),
 			},
+			...(tls.httpAgent ? { httpAgent: tls.httpAgent } : {}),
+			...(tls.fetch ? { fetch: tls.fetch } : {}),
 		})
 	}
 

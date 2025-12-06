@@ -13,6 +13,7 @@ import { DEFAULT_HEADERS } from "./constants"
 import { BaseProvider } from "./base-provider"
 import { handleOpenAIError } from "./utils/openai-error-handler"
 import { calculateApiCostOpenAI } from "../../shared/cost"
+import { getTlsOptions } from "./utils/tls"
 
 type BaseOpenAiCompatibleProviderOptions<ModelName extends string> = ApiHandlerOptions & {
 	providerName: string
@@ -58,10 +59,14 @@ export abstract class BaseOpenAiCompatibleProvider<ModelName extends string>
 			throw new Error("API key is required")
 		}
 
+		const tls = getTlsOptions(this.options.skipTlsVerification)
+
 		this.client = new OpenAI({
 			baseURL,
 			apiKey: this.options.apiKey,
 			defaultHeaders: DEFAULT_HEADERS,
+			...(tls.httpAgent ? { httpAgent: tls.httpAgent } : {}),
+			...(tls.fetch ? { fetch: tls.fetch } : {}),
 		})
 	}
 

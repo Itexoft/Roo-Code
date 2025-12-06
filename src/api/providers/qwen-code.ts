@@ -13,6 +13,7 @@ import { ApiStream } from "../transform/stream"
 
 import { BaseProvider } from "./base-provider"
 import type { SingleCompletionHandler } from "../index"
+import { getTlsOptions, withTlsFetchInit } from "./utils/tls"
 
 const QWEN_OAUTH_BASE_URL = "https://chat.qwen.ai"
 const QWEN_OAUTH_TOKEN_ENDPOINT = `${QWEN_OAUTH_BASE_URL}/api/v1/oauth2/token`
@@ -62,11 +63,14 @@ export class QwenCodeHandler extends BaseProvider implements SingleCompletionHan
 
 	private ensureClient(): OpenAI {
 		if (!this.client) {
+			const tls = getTlsOptions(this.options.skipTlsVerification)
 			// Create the client instance with dummy key initially
 			// The API key will be updated dynamically via ensureAuthenticated
 			this.client = new OpenAI({
 				apiKey: "dummy-key-will-be-replaced",
 				baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+				...(tls.httpAgent ? { httpAgent: tls.httpAgent } : {}),
+				...(tls.fetch ? { fetch: tls.fetch } : {}),
 			})
 		}
 		return this.client
@@ -114,14 +118,20 @@ export class QwenCodeHandler extends BaseProvider implements SingleCompletionHan
 			client_id: QWEN_OAUTH_CLIENT_ID,
 		}
 
-		const response = await fetch(QWEN_OAUTH_TOKEN_ENDPOINT, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/x-www-form-urlencoded",
-				Accept: "application/json",
-			},
-			body: objectToUrlEncoded(bodyData),
-		})
+		const response = await (getTlsOptions(this.options.skipTlsVerification).fetch ?? fetch)(
+			QWEN_OAUTH_TOKEN_ENDPOINT,
+			withTlsFetchInit(
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/x-www-form-urlencoded",
+						Accept: "application/json",
+					},
+					body: objectToUrlEncoded(bodyData),
+				},
+				this.options.skipTlsVerification,
+			),
+		)
 
 		if (!response.ok) {
 			const errorText = await response.text()

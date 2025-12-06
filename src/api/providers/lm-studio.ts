@@ -16,6 +16,7 @@ import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from ".
 import { getModels, getModelsFromCache } from "./fetchers/modelCache"
 import { getApiRequestTimeout } from "./utils/timeout-config"
 import { handleOpenAIError } from "./utils/openai-error-handler"
+import { getTlsOptions } from "./utils/tls"
 
 export class LmStudioHandler extends BaseProvider implements SingleCompletionHandler {
 	protected options: ApiHandlerOptions
@@ -29,10 +30,14 @@ export class LmStudioHandler extends BaseProvider implements SingleCompletionHan
 		// LM Studio uses "noop" as a placeholder API key
 		const apiKey = "noop"
 
+		const tls = getTlsOptions(this.options.skipTlsVerification)
+
 		this.client = new OpenAI({
 			baseURL: (this.options.lmStudioBaseUrl || "http://localhost:1234") + "/v1",
 			apiKey: apiKey,
 			timeout: getApiRequestTimeout(),
+			...(tls.httpAgent ? { httpAgent: tls.httpAgent } : {}),
+			...(tls.fetch ? { fetch: tls.fetch } : {}),
 		})
 	}
 

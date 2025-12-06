@@ -172,6 +172,7 @@ const baseProviderSettingsSchema = z.object({
 	diffEnabled: z.boolean().optional(),
 	todoListEnabled: z.boolean().optional(),
 	fuzzyMatchThreshold: z.number().optional(),
+	skipTlsVerification: z.boolean().optional(),
 	modelTemperature: z.number().nullish(),
 	rateLimitSeconds: z.number().optional(),
 	consecutiveMistakeLimit: z.number().min(0).optional(),
