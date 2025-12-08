@@ -9,6 +9,7 @@ import { DEFAULT_HEADERS } from "./constants"
 import { BaseProvider } from "./base-provider"
 import { getHuggingFaceModels, getCachedHuggingFaceModels } from "./fetchers/huggingface"
 import { handleOpenAIError } from "./utils/openai-error-handler"
+import { getTlsOptions } from "./utils/tls"
 
 export class HuggingFaceHandler extends BaseProvider implements SingleCompletionHandler {
 	private client: OpenAI
@@ -24,10 +25,14 @@ export class HuggingFaceHandler extends BaseProvider implements SingleCompletion
 			throw new Error("Hugging Face API key is required")
 		}
 
+		const tls = getTlsOptions(this.options.skipTlsVerification)
+
 		this.client = new OpenAI({
 			baseURL: "https://router.huggingface.co/v1",
 			apiKey: this.options.huggingFaceApiKey,
 			defaultHeaders: DEFAULT_HEADERS,
+			...(tls.httpAgent ? { httpAgent: tls.httpAgent } : {}),
+			...(tls.fetch ? { fetch: tls.fetch } : {}),
 		})
 
 		// Try to get cached models first

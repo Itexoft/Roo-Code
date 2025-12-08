@@ -3,6 +3,7 @@ import { convertHeadersToObject } from "./utils/headers"
 import { useDebounce } from "react-use"
 import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 import { ExternalLinkIcon } from "@radix-ui/react-icons"
+import { Checkbox } from "vscrui"
 
 import {
 	type ProviderName,
@@ -905,6 +906,16 @@ const ApiOptions = ({
 								defaultValue={selectedModelInfo?.defaultTemperature}
 							/>
 						)}
+						<div>
+							<Checkbox
+								checked={apiConfiguration.skipTlsVerification ?? false}
+								onChange={handleInputChange("skipTlsVerification", noTransform)}>
+								{t("settings:providers.skipTlsVerification.label")}
+							</Checkbox>
+							<div className="text-sm text-vscode-descriptionForeground ml-6">
+								{t("settings:providers.skipTlsVerification.description")}
+							</div>
+						</div>
 						<RateLimitSecondsControl
 							value={apiConfiguration.rateLimitSeconds || 0}
 							onChange={(value) => setApiConfigurationField("rateLimitSeconds", value)}

@@ -22,6 +22,7 @@ import { getModelParams } from "../transform/model-params"
 
 import { BaseProvider } from "./base-provider"
 import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "../index"
+import { getTlsOptions, withTlsFetchInit } from "./utils/tls"
 
 export type OpenAiNativeModel = ReturnType<OpenAiNativeHandler["getModel"]>
 
@@ -64,7 +65,13 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 			this.options.enableResponsesReasoningSummary = true
 		}
 		const apiKey = this.options.openAiNativeApiKey ?? "not-provided"
-		this.client = new OpenAI({ baseURL: this.options.openAiNativeBaseUrl, apiKey })
+		const tls = getTlsOptions(this.options.skipTlsVerification)
+		this.client = new OpenAI({
+			baseURL: this.options.openAiNativeBaseUrl,
+			apiKey,
+			...(tls.httpAgent ? { httpAgent: tls.httpAgent } : {}),
+			...(tls.fetch ? { fetch: tls.fetch } : {}),
+		})
 	}
 
 	private normalizeUsage(usage: any, model: OpenAiNativeModel): ApiStreamUsageChunk | undefined {
@@ -457,21 +464,29 @@ export class OpenAiNativeHandler extends BaseProvider implements SingleCompletio
 		const apiKey = this.options.openAiNativeApiKey ?? "not-provided"
 		const baseUrl = this.options.openAiNativeBaseUrl || "https://api.openai.com"
 		const url = `${baseUrl}/v1/responses`
+		const tls = getTlsOptions(this.options.skipTlsVerification)
+		const fetchImpl = tls.fetch ?? fetch
 
 		// Create AbortController for cancellation
 		this.abortController = new AbortController()
 
 		try {
-			const response = await fetch(url, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${apiKey}`,
-					Accept: "text/event-stream",
-				},
-				body: JSON.stringify(requestBody),
-				signal: this.abortController.signal,
-			})
+			const response = await fetchImpl(
+				url,
+				withTlsFetchInit(
+					{
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+							Authorization: `Bearer ${apiKey}`,
+							Accept: "text/event-stream",
+						},
+						body: JSON.stringify(requestBody),
+						signal: this.abortController.signal,
+					},
+					this.options.skipTlsVerification,
+				),
+			)
 
 			if (!response.ok) {
 				const errorText = await response.text()

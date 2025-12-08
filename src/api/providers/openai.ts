@@ -25,6 +25,7 @@ import { BaseProvider } from "./base-provider"
 import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "../index"
 import { getApiRequestTimeout } from "./utils/timeout-config"
 import { handleOpenAIError } from "./utils/openai-error-handler"
+import { getTlsOptions } from "./utils/tls"
 
 // TODO: Rename this to OpenAICompatibleHandler. Also, I think the
 // `OpenAINativeHandler` can subclass from this, since it's obviously
@@ -50,6 +51,7 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 		}
 
 		const timeout = getApiRequestTimeout()
+		const tls = getTlsOptions(this.options.skipTlsVerification)
 
 		if (isAzureAiInference) {
 			// Azure AI Inference Service (e.g., for DeepSeek) uses a different path structure
@@ -59,6 +61,8 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 				defaultHeaders: headers,
 				defaultQuery: { "api-version": this.options.azureApiVersion || "2024-05-01-preview" },
 				timeout,
+				...(tls.httpAgent ? { httpAgent: tls.httpAgent } : {}),
+				...(tls.fetch ? { fetch: tls.fetch } : {}),
 			})
 		} else if (isAzureOpenAi) {
 			// Azure API shape slightly differs from the core API shape:
@@ -69,6 +73,8 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 				apiVersion: this.options.azureApiVersion || azureOpenAiDefaultApiVersion,
 				defaultHeaders: headers,
 				timeout,
+				...(tls.httpAgent ? { httpAgent: tls.httpAgent } : {}),
+				...(tls.fetch ? { fetch: tls.fetch } : {}),
 			})
 		} else {
 			this.client = new OpenAI({
@@ -76,6 +82,8 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 				apiKey,
 				defaultHeaders: headers,
 				timeout,
+				...(tls.httpAgent ? { httpAgent: tls.httpAgent } : {}),
+				...(tls.fetch ? { fetch: tls.fetch } : {}),
 			})
 		}
 	}
@@ -516,7 +524,12 @@ export class OpenAiHandler extends BaseProvider implements SingleCompletionHandl
 	}
 }
 
-export async function getOpenAiModels(baseUrl?: string, apiKey?: string, openAiHeaders?: Record<string, string>) {
+export async function getOpenAiModels(
+	baseUrl?: string,
+	apiKey?: string,
+	openAiHeaders?: Record<string, string>,
+	skipTlsVerification?: boolean,
+) {
 	try {
 		if (!baseUrl) {
 			return []
@@ -541,6 +554,11 @@ export async function getOpenAiModels(baseUrl?: string, apiKey?: string, openAiH
 
 		if (Object.keys(headers).length > 0) {
 			config["headers"] = headers
+		}
+
+		const tls = getTlsOptions(skipTlsVerification)
+		if (tls.httpsAgent) {
+			config["httpsAgent"] = tls.httpsAgent
 		}
 
 		const response = await axios.get(`${trimmedBaseUrl}/models`, config)

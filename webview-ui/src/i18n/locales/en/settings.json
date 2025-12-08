@@ -293,6 +293,10 @@
 		"useCustomBaseUrl": "Use custom base URL",
 		"useReasoning": "Enable reasoning",
 		"useHostHeader": "Use custom Host header",
+		"skipTlsVerification": {
+			"label": "Disable TLS certificate verification for this endpoint (unsafe)",
+			"description": "Applies only to this profile's base URL; other endpoints will still validate certificates. Use for self-signed test environments."
+		},
 		"useLegacyFormat": "Use legacy OpenAI API format",
 		"customHeaders": "Custom Headers",
 		"headerName": "Header name",
